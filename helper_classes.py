@@ -142,7 +142,7 @@ class Object3D:
 
         pass
 
-    def phong_color(self, n_vec, l_vec, v_vec, i_light, i_ambient):
+    def phong_color(self, n_vec, l_vec, v_vec, i_light, i_ambient, is_blocked=False):
         ref_l = reflected(l_vec, n_vec)
         cosn_theta = max(0, np.dot(v_vec, ref_l)) ** self.shininess
 
@@ -150,7 +150,7 @@ class Object3D:
         diffuse = self.diffuse * i_light * max(0, np.dot(n_vec, l_vec))
         specular = self.specular * i_light * cosn_theta
 
-        return ambient + diffuse + specular
+        return ambient + (diffuse + specular) * int(not is_blocked)
 
 
 class Plane(Object3D):

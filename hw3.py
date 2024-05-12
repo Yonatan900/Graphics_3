@@ -44,17 +44,19 @@ def render_scene(camera, ambient, lights, objects: list[Object3D], screen_size, 
             origin = camera
             viewer_direction = normalize(pixel - origin)
             camera_ray = Ray(origin, viewer_direction)
-            nearest_object, intersection_distance = camera_ray.nearest_intersected_object(objects)
 
+            # get intersection point
+            nearest_object, intersection_distance = camera_ray.nearest_intersected_object(objects)
             intersection_point = camera_ray.origin + intersection_distance * camera_ray.direction
             intersection_point += nearest_object.normal * 1e-5
+
             color = np.zeros(3)
             for light in lights:
                 light_ray = light.get_light_ray(intersection_point)
 
                 distance_to_light_from_intersection = light.get_distance_from_light(intersection_point)
-                blocker, distance = light_ray.nearest_intersected_object(objects)
-                is_blocked = blocker is not None and blocker != nearest_object and distance < distance_to_light_from_intersection
+                blocker, distance = light_ray.first_intersected_object(objects, distance_to_light_from_intersection)
+                is_blocked = blocker is not None and blocker != nearest_object
 
                 light_vector = normalize(light_ray.direction)
                 light_intensity = light.get_intensity(intersection_point)

@@ -123,6 +123,15 @@ class Ray:
         # TODO
         return nearest_object, min_distance
 
+    def first_intersected_object(self, objects, max_distance=np.inf):
+        for object_i in objects:
+            intersection = object_i.intersect(self)
+            if intersection is not None:
+                d, inter_object = intersection
+                if d < max_distance:
+                    return inter_object, d
+        return None, None
+
 
 class Object3D:
     def set_material(self, ambient, diffuse, specular, shininess, reflection):

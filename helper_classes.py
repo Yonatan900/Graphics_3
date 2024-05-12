@@ -116,9 +116,9 @@ class Ray:
         for object_i in objects:
             intersection = object_i.intersect(self)
             if intersection is not None:
-                d, _ = intersection
+                d, inter_object = intersection
                 if d < min_distance:
-                    nearest_object = object_i
+                    nearest_object = inter_object
                     min_distance = d
         # TODO
         return nearest_object, min_distance
@@ -270,16 +270,18 @@ A /&&&&&&&&&&&&&&&&&&&&\ B &&&/ C
             [4, 1, 0],
             [4, 2, 1],
             [2, 4, 0]]
-        # TODO
+        for idx in t_idx:
+            l.append(Triangle(self.v_list[idx[0]], self.v_list[idx[1]], self.v_list[idx[2]]))
+
         return l
 
     def apply_materials_to_triangles(self):
-        # TODO
-        pass
+        for t in self.triangle_list:
+            t.set_material(self.ambient, self.diffuse, self.specular, self.shininess, self.reflection)
 
     def intersect(self, ray: Ray):
-        # TODO
-        pass
+        tri, d =  ray.nearest_intersected_object(self.triangle_list)
+        return d, tri
 
 
 class Sphere(Object3D):

@@ -36,7 +36,7 @@ class DirectionalLight(LightSource):
         self.direction = normalize(direction)
         # TODO
 
-    # This function returns the ray that goes from the light source to a point
+    # This function returns the ray that goes from the point to a light source
     def get_light_ray(self, intersection_point):
         # TODO documentation mistake?
         return Ray(origin=intersection_point, direction=-self.direction)
@@ -66,7 +66,7 @@ class PointLight(LightSource):
 
     # This function returns the distance from a point to the light source
     def get_distance_from_light(self, intersection):
-        return np.linalg.norm(intersection - self.position)
+        return np.linalg.norm(self.position - intersection)
 
     # This function returns the light intensity at a point
     def get_intensity(self, intersection):
@@ -141,6 +141,7 @@ class Object3D:
         Return the distance to the intersection point and the object itself,
         or None if there is no intersection.
         """
+
         pass
 
     def phong_color(self, n_vec, l_vec, v_vec, i_light, i_ambient):
@@ -205,11 +206,12 @@ class Triangle(Object3D):
 
     def intersect(self, ray: Ray):
         # TODO float problem?
-        t = self.intersect_triangle_plane(ray)
-        if t is None:
-            return None
 
-        point_p = t * ray.direction
+        res = self.intersect_triangle_plane(ray)
+        if res is None:
+            return None
+        t, _ = res
+        point_p = ray.origin + t * ray.direction
         v_AB = self.b - self.a
         v_AC = self.c - self.a
         v_PB = point_p - self.b
@@ -217,12 +219,14 @@ class Triangle(Object3D):
         v_PA = point_p - self.a
 
         area = np.linalg.norm(cross(v_AC, v_AB)) / 2
+        if area is 0:
+            print("Area is 0")
 
         alpha = np.linalg.norm(cross(v_PB, v_PC)) / (2 * area)
         beta = np.linalg.norm(cross(v_PC, v_PA)) / (2 * area)
         gamma = 1 - alpha - beta
         if 0 <= alpha <= 1 and 0 <= beta <= 1 and 0 <= gamma <= 1:
-            return t
+            return t, self
         return None
         # TODO
 

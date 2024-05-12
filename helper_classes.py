@@ -43,12 +43,10 @@ class DirectionalLight(LightSource):
 
     # This function returns the distance from a point to the light source
     def get_distance_from_light(self, intersection):
-        # TODO
         return np.inf
 
     # This function returns the light intensity at a point
     def get_intensity(self, intersection):
-        # TODO
         return self.intensity
 
 
@@ -198,7 +196,7 @@ class Triangle(Object3D):
 
     def intersect_triangle_plane(self, ray: Ray):
         v = self.a - ray.origin
-        t = np.dot(v, self.normal) / (np.dot(self.normal, ray.direction) + 1e-6)
+        t = np.dot(v, self.normal) / (np.dot(self.normal, ray.direction))
         if t > 0:
             return t, self
         else:
@@ -219,13 +217,14 @@ class Triangle(Object3D):
         v_PA = point_p - self.a
 
         area = np.linalg.norm(cross(v_AC, v_AB)) / 2
-        if area is 0:
+        if area == 0:
             print("Area is 0")
+            return None
 
         alpha = np.linalg.norm(cross(v_PB, v_PC)) / (2 * area)
         beta = np.linalg.norm(cross(v_PC, v_PA)) / (2 * area)
-        gamma = 1 - alpha - beta
-        if 0 <= alpha <= 1 and 0 <= beta <= 1 and 0 <= gamma <= 1:
+        gamma = np.linalg.norm(cross(v_PB, v_PA)) / (2 * area)
+        if (0 <= alpha <= 1) and (0 <= beta <= 1) and (0 <= gamma <= 1) and (1 - 1e-6 <=alpha + beta + gamma <= 1 + 1e-6):
             return t, self
         return None
         # TODO

@@ -44,17 +44,20 @@ def render_scene(camera, ambient, lights, objects: list[Object3D], screen_size, 
             pixel = np.array([x, y, 0])
             origin = camera
             viewer_direction = normalize(pixel - origin)
-            ray = Ray(origin, viewer_direction)
-            nearest_object, intersection_distance = ray.nearest_intersected_object(objects)
+            camera_ray = Ray(origin, viewer_direction)
+            nearest_object, intersection_distance = camera_ray.nearest_intersected_object(objects)
 
-            intersection_point = ray.origin + intersection_distance * ray.direction
+            intersection_point = camera_ray.origin + intersection_distance * camera_ray.direction
             intersection_point += nearest_object.normal * 1e-5
 
-            light_vector = light.get_light_ray(intersection_point).direction
-
-            light_intensity = light.get_intensity(intersection_point)
-
-            color = nearest_object.phong_color(nearest_object.normal, light_vector, ray.direction, light_intensity, ambient)
+            light_ray = light.get_light_ray(intersection_point)
+            blocker, _ = light_ray.nearest_intersected_object(objects)
+            if blocker is not None:
+                color = np.zeros(3)
+            else:
+                light_vector = normalize(light_ray.direction)
+                light_intensity = light.get_intensity(intersection_point)
+                color = nearest_object.phong_color(nearest_object.normal, light_vector, camera_ray.direction, light_intensity, ambient)
 
             # This is the main loop where each pixel color is computed.
             image[i, j] = color

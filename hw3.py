@@ -2,33 +2,36 @@ from helper_classes import *
 import matplotlib.pyplot as plt
 
 
-# ##
-# RGB GetColor(Scene scene, Ray ray, Point hit, int level) {
-# // Ambient and Emission calculations
-# RGB color = calcEmissionColor(scene)
-# + calcAmbientColor(scene);
-# // Diffuse & Specular calculations
-# for (int j = 0; j < getNumLights(scene); j++) {
-# Light light = getLight(j,scene);
-# color = color
-# + calcDiffuseColor(scene,hit,ray,light)
-# + calcSpecularColor(scene,hit,ray,light);
-# }
-# level = level+1;
-# if (level > MAX_LEVEL)
-# return color;
-# // reflective & refractive calculations
-# Ray r_ray = ConstructReflectiveRay(ray, scene, hit);
-# Point r_hit = FindIntersection(r_ray, scene)
-# color += K_R * GetColor(scene, r_ray, r_hit, level);
-# Ray t_ray = ConstructReflefractiveRay(ray, scene, hit);
-# Point t_hit = FindIntersection(t_ray, scene)
-# color += K_T * GetColor(scene, t_ray, t_hit, level);
-# return color;
-# }
-##
-def getColor(color):
-    pass
+def trace_ray(ray: Ray, ambient, lights: list[LightSource], objects: list[Object3D], depth, max_depth):
+    if depth > max_depth:
+        return np.zeros(3)
+    nearest_object, intersection_distance = ray.nearest_intersected_object(objects)
+    intersection_point = ray.origin + intersection_distance * ray.direction
+    #no intersection
+    if nearest_object is None:
+        return np.zeros(3)
+
+    intersection_point += nearest_object.get_normal(intersection_point) * 1e-5
+    # #ambient per intersaction
+    color = nearest_object.ambient * ambient
+    for light in lights:
+        light_ray = light.get_light_ray(intersection_point)
+
+        distance_to_light_from_intersection = light.get_distance_from_light(intersection_point)
+        #shadow ray
+        blocker, distance = light_ray.first_intersected_object(objects, distance_to_light_from_intersection)
+        is_blocked = blocker is not None and blocker != nearest_object
+
+        light_vector = normalize(light_ray.direction)
+        light_intensity = light.get_intensity(intersection_point)
+        color += nearest_object.diffuse_spec(nearest_object.get_normal(intersection_point), light_vector, ray.direction,
+                                             light_intensity, is_blocked)
+
+    reflect_ray = reflected(ray.direction, nearest_object.get_normal(intersection_point))
+    color += nearest_object.reflection * trace_ray(Ray(intersection_point, reflect_ray), ambient, lights, objects,
+                                                   depth + 1, max_depth)
+
+    return color
 
 
 def render_scene(camera, ambient, lights, objects: list[Object3D], screen_size, max_depth):
@@ -44,26 +47,8 @@ def render_scene(camera, ambient, lights, objects: list[Object3D], screen_size, 
             origin = camera
             viewer_direction = normalize(pixel - origin)
             camera_ray = Ray(origin, viewer_direction)
+            color = trace_ray(camera_ray, ambient, lights, objects, 1, max_depth)
 
-            # get intersection point
-            nearest_object, intersection_distance = camera_ray.nearest_intersected_object(objects)
-            intersection_point = camera_ray.origin + intersection_distance * camera_ray.direction
-            intersection_point += nearest_object.normal * 1e-5
-
-            color = np.zeros(3)
-            for light in lights:
-                light_ray = light.get_light_ray(intersection_point)
-
-                distance_to_light_from_intersection = light.get_distance_from_light(intersection_point)
-                blocker, distance = light_ray.first_intersected_object(objects, distance_to_light_from_intersection)
-                is_blocked = blocker is not None and blocker != nearest_object
-
-                light_vector = normalize(light_ray.direction)
-                light_intensity = light.get_intensity(intersection_point)
-                color += nearest_object.phong_color(nearest_object.normal, light_vector, camera_ray.direction,
-                                                    light_intensity, ambient, is_blocked)
-
-            # This is the main loop where each pixel color is computed.
             image[i, j] = color
             # TODO compute color
     image = np.clip(image, 0, 1)

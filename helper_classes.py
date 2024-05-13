@@ -28,6 +28,18 @@ class LightSource:
     def __init__(self, intensity):
         self.intensity = intensity
 
+    def get_distance_from_light(self, intersection):
+        """abstract"""
+        pass
+
+    def get_intensity(self, intersection_point):
+        """abstract"""
+        pass
+
+    def get_light_ray(self, intersection_point):
+        """abstract"""
+        pass
+
 
 class DirectionalLight(LightSource):
 
@@ -151,21 +163,27 @@ class Object3D:
 
         pass
 
-    def phong_color(self, n_vec, l_vec, v_vec, i_light, i_ambient, is_blocked=False):
+    def get_normal(self, inter_p):
+        """abstract"""
+        pass
+
+    def diffuse_spec(self, n_vec, l_vec, v_vec, i_light, is_shadowed=False):
         ref_l = reflected(l_vec, n_vec)
         cosn_theta = max(0, np.dot(v_vec, ref_l)) ** self.shininess
 
-        ambient = self.ambient * i_ambient
         diffuse = self.diffuse * i_light * max(0, np.dot(n_vec, l_vec))
         specular = self.specular * i_light * cosn_theta
 
-        return ambient + (diffuse + specular) * int(not is_blocked)
+        return (diffuse + specular) * int(not is_shadowed)
 
 
 class Plane(Object3D):
     def __init__(self, normal, point):
         self.normal = np.array(normal)
         self.point = np.array(point)
+
+    def get_normal(self, inter_p):
+        return self.normal
 
     def intersect(self, ray: Ray):
         v = self.point - ray.origin
@@ -193,7 +211,10 @@ class Triangle(Object3D):
         self.c = np.array(c)
         self.normal = self.compute_normal()
 
-    # computes normal to the trainagle surface. Pay attention to its direction!
+    def get_normal(self, inter_p):
+        return self.normal
+
+    # computes normal to the triangle surface.
     def compute_normal(self):
         # Vectors for two edges of the triangle
         vec1 = self.b - self.a
@@ -233,7 +254,8 @@ class Triangle(Object3D):
         alpha = np.linalg.norm(cross(v_PB, v_PC)) / (2 * area)
         beta = np.linalg.norm(cross(v_PC, v_PA)) / (2 * area)
         gamma = np.linalg.norm(cross(v_PB, v_PA)) / (2 * area)
-        if (0 <= alpha <= 1) and (0 <= beta <= 1) and (0 <= gamma <= 1) and (1 - 1e-6 <=alpha + beta + gamma <= 1 + 1e-6):
+        if (0 <= alpha <= 1) and (0 <= beta <= 1) and (0 <= gamma <= 1) and (
+                1 - 1e-6 <= alpha + beta + gamma <= 1 + 1e-6):
             return t, self
         return None
         # TODO
@@ -289,7 +311,7 @@ A /&&&&&&&&&&&&&&&&&&&&\ B &&&/ C
             t.set_material(self.ambient, self.diffuse, self.specular, self.shininess, self.reflection)
 
     def intersect(self, ray: Ray):
-        tri, d =  ray.nearest_intersected_object(self.triangle_list)
+        tri, d = ray.nearest_intersected_object(self.triangle_list)
         return d, tri
 
 
@@ -298,6 +320,27 @@ class Sphere(Object3D):
         self.center = center
         self.radius = radius
 
+    def get_normal(self, inter_p):
+        v_norm = inter_p - self.center
+        return normalize(v_norm)
+
     def intersect(self, ray: Ray):
-        # TODO
-        pass
+        L = self.center - ray.origin
+        t_c = np.dot(L, ray.direction)
+        d2 = np.dot(L, L) - t_c ** 2
+        r2 = self.radius ** 2
+
+        if d2 > r2:
+            return None  # No intersection
+
+        t_h = np.sqrt(r2 - d2)
+        t0 = t_c - t_h
+        t1 = t_c + t_h
+
+        # both points are behind the ray origin
+        if t0 < 0 and t1 < 0:
+            return None
+
+        # We return the smallest non-negative t value, the closest intersection
+        t = t0 if t0 > 0 else t1
+        return t, self

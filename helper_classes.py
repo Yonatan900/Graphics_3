@@ -358,6 +358,7 @@ class OctreeNode:
         return self.children is None
 
     def split(self):
+        pass
 
 
 

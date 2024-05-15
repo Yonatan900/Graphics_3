@@ -3,22 +3,23 @@ import matplotlib.pyplot as plt
 
 
 def trace_ray(ray: Ray, ambient, lights: list[LightSource], objects: list[Object3D], depth, max_depth):
-    if depth > max_depth:
-        return np.zeros(3)
+    color = np.zeros(3, dtype=np.float64)
+
+    if depth >= max_depth:
+        return color
     nearest_object, intersection_distance = ray.nearest_intersected_object(objects)
     intersection_point = ray.origin + intersection_distance * ray.direction
-    #no intersection
+    # no intersection
     if nearest_object is None:
-        return np.zeros(3)
-
+        return color
     intersection_point += nearest_object.get_normal(intersection_point) * 1e-5
+
     # #ambient per intersaction
-    color = nearest_object.ambient * ambient
     for light in lights:
         light_ray = light.get_light_ray(intersection_point)
 
         distance_to_light_from_intersection = light.get_distance_from_light(intersection_point)
-        #shadow ray
+        # shadow ray
         blocker, distance = light_ray.first_intersected_object(objects, distance_to_light_from_intersection)
         is_blocked = blocker is not None and blocker != nearest_object
 
@@ -31,6 +32,7 @@ def trace_ray(ray: Ray, ambient, lights: list[LightSource], objects: list[Object
     color += nearest_object.reflection * trace_ray(Ray(intersection_point, reflect_ray), ambient, lights, objects,
                                                    depth + 1, max_depth)
 
+    color += nearest_object.ambient * ambient
     return color
 
 
@@ -47,9 +49,8 @@ def render_scene(camera, ambient, lights, objects: list[Object3D], screen_size, 
             origin = camera
             viewer_direction = normalize(pixel - origin)
             camera_ray = Ray(origin, viewer_direction)
-            color = trace_ray(camera_ray, ambient, lights, objects, 1, max_depth)
+            image[i, j] = trace_ray(camera_ray, ambient, lights, objects, 1, max_depth)
 
-            image[i, j] = color
             # TODO compute color
     image = np.clip(image, 0, 1)
     return image

@@ -344,3 +344,37 @@ class Sphere(Object3D):
         # We return the smallest non-negative t value, the closest intersection
         t = t0 if t0 > 0 else t1
         return t, self
+
+
+class OctreeNode:
+    def __init__(self, bounds, depth=0, max_depth=5):
+        self.bounds = bounds # 6 values for each delta from the center on 000
+        self.depth = depth
+        self.max_depth = max_depth
+        self.children = None
+        self.objects = []
+
+    def is_leaf(self):
+        return self.children is None
+
+    def split(self):
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
